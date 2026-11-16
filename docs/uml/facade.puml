@@ -1,0 +1,86 @@
+@startuml facade
+!pragma layout smetana
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F7F9FC
+skinparam classBorderColor #2F4A7A
+skinparam classHeaderBackgroundColor #E3EAF5
+skinparam classFontStyle bold
+skinparam stereotypeFontColor #2F4A7A
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam packageBorderColor #2F4A7A
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageFontColor #2F4A7A
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam circledCharacterFontSize 10
+skinparam circledCharacterRadius 9
+hide empty members
+
+title Facade - DungeonFacade
+
+class Main <<Client>>
+hide Main members
+
+class DungeonFacade <<Facade>> {
+  - {static} MAX_PARTY_SIZE : int = 5
+  - teleporter : Teleporter
+  - combat : CombatSystem
+  - loot : LootSystem
+  - experience : ExperienceService
+  + DungeonFacade(initialStrategy : LootStrategy)
+  + setLootStrategy(strategy : LootStrategy) : void
+  + getLootStrategyName() : String
+  + runDungeon(party : List<Character>, dungeon : Dungeon) : boolean
+  - canEnter(party : List<Character>) : boolean
+}
+
+package "wow.structural.facade.subsystems" as sub {
+  class Teleporter <<Subsystem>> {
+    + enter(party : List<Character>, dungeon : Dungeon) : void
+    + returnToCity(party : List<Character>) : void
+    - restoreAll(party : List<Character>) : void
+  }
+  class CombatSystem <<Subsystem>> {
+    - {static} MAX_ROUNDS : int = 100
+    + fight(party : List<Character>, enemy : Enemy) : boolean
+    - playRound(party : List<Character>, enemy : Enemy) : void
+    - publish(type : EventType, subject : String, message : String) : void
+  }
+  class ExperienceService <<Subsystem>> {
+    + grant(party : List<Character>, xp : int) : void
+  }
+}
+
+package "wow.behavioral.strategy" as strat {
+  class LootSystem <<Subsystem + Strategy: Context>> {
+    - strategy : LootStrategy
+    + setStrategy(strategy : LootStrategy) : void
+    + distribute(party : List<Character>, item : Weapon) : void
+  }
+}
+
+abstract class Dungeon <<Factory Method: Creator>>
+hide Dungeon members
+
+Main --> DungeonFacade : runDungeon(party, dungeon)
+CombatSystem -[hidden]- ExperienceService
+DungeonFacade *-- "1" Teleporter
+DungeonFacade *-- "1" CombatSystem
+DungeonFacade *-- "1" LootSystem
+DungeonFacade *-- "1" ExperienceService
+DungeonFacade ..> Dungeon : spawnEnemies()\ndropBossLoot()
+
+note right of DungeonFacade
+  runDungeon(): canEnter -> teleporter.enter
+  -> combat.fight for every enemy
+  -> loot.distribute -> experience.grant;
+  finally teleporter.returnToCity.
+end note
+@enduml

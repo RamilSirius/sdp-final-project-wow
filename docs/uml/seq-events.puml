@@ -1,0 +1,82 @@
+@startuml seq-events
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam sequence {
+  ParticipantBackgroundColor #F7F9FC
+  ParticipantBorderColor #2F4A7A
+  ParticipantFontColor #1F2D45
+  ActorBackgroundColor #F7F9FC
+  ActorBorderColor #2F4A7A
+  LifeLineBorderColor #8FA3C4
+  LifeLineBackgroundColor #E3EAF5
+  GroupBorderColor #2F4A7A
+  GroupBackgroundColor #E3EAF5
+  GroupHeaderFontColor #1F2D45
+  DividerBackgroundColor #E3EAF5
+  DividerBorderColor #2F4A7A
+}
+autonumber "<b>0."
+
+title Publishing BOSS_DEFEATED to all observers
+hide footbox
+
+participant ":CombatSystem" as CS
+participant "WorldServer\n<<Singleton>>" as WS
+participant ":EventManager" as EM
+participant ":CombatLog" as CL
+participant ":Achievement\nTracker" as AT
+participant ":GuildAnnouncer" as GA
+participant ":InGame\nGuildChat" as IG
+participant ":DiscordChat\nAdapter" as DA
+participant ":DiscordWebhook\nClient" as DW
+
+activate CS
+CS -> CS : reportVictory(enemy, round)\n[enemy.isBoss()]
+CS -> CS : publish(BOSS_DEFEATED,\n"Edwin VanCleef", message)
+CS -> WS : getInstance()
+WS --> CS : the only WorldServer
+CS -> WS : getEvents()
+WS --> CS : events
+CS -> EM : publish(event)
+activate EM
+EM -> EM : copy of\nlisteners
+
+EM -> CL : onEvent(event)
+activate CL
+CL -> CL : history.add(...)\nprint
+deactivate CL
+
+EM -> AT : onEvent(event)
+activate AT
+AT -> AT : unlock(\n"Boss Slayer:\nEdwin VanCleef")
+deactivate AT
+
+EM -> GA : onEvent(event)
+activate GA
+GA -> GA : announce(message)
+GA -> IG : sendMessage(text)
+activate IG
+IG -> IG : print\n"[Guild] ..."
+deactivate IG
+GA -> DA : sendMessage(text)
+activate DA
+DA -> DA : escape(...),\nbuild JSON
+DA -> DW : postJson(webhookUrl, json)
+activate DW
+DW -> DW : print\n"[Discord]\nPOST ..."
+deactivate DW
+deactivate DA
+deactivate GA
+deactivate EM
+deactivate CS
+@enduml

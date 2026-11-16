@@ -1,0 +1,103 @@
+@startuml factory-method
+!pragma layout smetana
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F7F9FC
+skinparam classBorderColor #2F4A7A
+skinparam classHeaderBackgroundColor #E3EAF5
+skinparam classFontStyle bold
+skinparam stereotypeFontColor #2F4A7A
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam packageBorderColor #2F4A7A
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageFontColor #2F4A7A
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam circledCharacterFontSize 10
+skinparam circledCharacterRadius 9
+hide empty members
+
+title Factory Method - Dungeon and its subclasses
+
+abstract class Dungeon <<Creator>> {
+  + {abstract} getName() : String
+  + {abstract} getExperienceReward() : int
+  + {abstract} getTrashMobCount() : int
+  # {abstract} createTrashMob() : Enemy
+  # {abstract} createBoss() : Enemy
+  # {abstract} createBossLoot() : Weapon
+  + spawnEnemies() : List<Enemy>
+  + dropBossLoot() : Weapon
+}
+note right of Dungeon
+  spawnEnemies() calls createTrashMob()
+  getTrashMobCount() times, then
+  createBoss(). dropBossLoot() returns
+  createBossLoot(). The base class never
+  writes <b>new Enemy(...)</b> itself.
+end note
+
+class Deadmines <<Concrete Creator>> {
+  # createTrashMob() : Enemy
+  # createBoss() : Enemy
+  # createBossLoot() : Weapon
+}
+class ShadowfangKeep <<Concrete Creator>> {
+  # createTrashMob() : Enemy
+  # createBoss() : Enemy
+  # createBossLoot() : Weapon
+}
+class MoltenCore <<Concrete Creator>> {
+  # createTrashMob() : Enemy
+  # createBoss() : Enemy
+  # createBossLoot() : Weapon
+}
+
+Deadmines -up-|> Dungeon
+ShadowfangKeep -up-|> Dungeon
+MoltenCore -up-|> Dungeon
+
+class Enemy <<Product>> {
+  - name : String
+  - maxHealth : int
+  - damage : int
+  - boss : boolean
+  - currentHealth : int
+  + Enemy(name : String, maxHealth : int, damage : int, boss : boolean)
+  + isAlive() : boolean
+  + takeDamage(amount : int) : void
+  + isBoss() : boolean
+}
+interface Weapon <<Product>> {
+  + getName() : String
+  + getDamage() : int
+}
+class BaseWeapon <<Concrete Product>>
+abstract class WeaponEnchantment
+class FieryEnchantment <<Concrete Product>>
+hide BaseWeapon members
+hide WeaponEnchantment members
+hide FieryEnchantment members
+BaseWeapon .up.|> Weapon
+WeaponEnchantment .up.|> Weapon
+FieryEnchantment -up-|> WeaponEnchantment
+
+Dungeon ..> Enemy : createTrashMob()\ncreateBoss()
+Dungeon ..> Weapon : createBossLoot()
+Deadmines ..> BaseWeapon : <<create>>\nCruel Barb
+MoltenCore ..> BaseWeapon : <<create>>\nSulfuras
+ShadowfangKeep ..> FieryEnchantment : <<create>>\nFiery(Shadowfang)
+
+note bottom of Enemy
+  Created by the concrete creators
+  (sub-package creators).
+  Bosses: Edwin VanCleef, Archmage
+  Arugal, Ragnaros.
+end note
+@enduml

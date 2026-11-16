@@ -1,0 +1,69 @@
+@startuml singleton
+!pragma layout smetana
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F7F9FC
+skinparam classBorderColor #2F4A7A
+skinparam classHeaderBackgroundColor #E3EAF5
+skinparam classFontStyle bold
+skinparam stereotypeFontColor #2F4A7A
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam packageBorderColor #2F4A7A
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageFontColor #2F4A7A
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam circledCharacterFontSize 10
+skinparam circledCharacterRadius 9
+hide empty members
+
+title Singleton - WorldServer
+
+class WorldServer <<Singleton>> {
+  - {static} INSTANCE : WorldServer = new WorldServer()
+  - {static} REALM_NAME : String = "Sirius"
+  - events : EventManager
+  - onlinePlayers : List<Character>
+  --
+  - WorldServer()
+  + {static} getInstance() : WorldServer
+  + getRealmName() : String
+  + getEvents() : EventManager
+  + getOnlinePlayers() : List<Character>
+  + login(character : Character) : void
+}
+note left of WorldServer
+  <b>final</b> class, <b>private</b> constructor:
+  nobody can write new WorldServer().
+  INSTANCE is created eagerly when the
+  class is loaded (thread-safe in the JVM).
+  getInstance() always returns this object.
+end note
+
+WorldServer --> "1" WorldServer : INSTANCE
+WorldServer *-- "1" EventManager : events
+WorldServer o-- "0..*" Character : onlinePlayers
+
+class EventManager <<Observer: Subject>>
+class Character <<Builder: Product>>
+
+package "Clients (call WorldServer.getInstance())" as clients {
+  class Main <<Client>>
+  class CombatSystem <<Client>>
+  class LootSystem <<Client>>
+  class ExperienceService <<Client>>
+}
+Main ..> WorldServer : getEvents().subscribe(...)\nlogin(...)
+CombatSystem ..> WorldServer : getEvents().publish(...)
+LootSystem ..> WorldServer
+ExperienceService ..> WorldServer
+hide EventManager members
+hide Character members
+hide clients members
+@enduml

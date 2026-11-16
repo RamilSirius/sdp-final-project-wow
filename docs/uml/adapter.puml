@@ -1,0 +1,73 @@
+@startuml adapter
+!pragma layout smetana
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F7F9FC
+skinparam classBorderColor #2F4A7A
+skinparam classHeaderBackgroundColor #E3EAF5
+skinparam classFontStyle bold
+skinparam stereotypeFontColor #2F4A7A
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam packageBorderColor #2F4A7A
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageFontColor #2F4A7A
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam circledCharacterFontSize 10
+skinparam circledCharacterRadius 9
+hide empty members
+
+title Adapter - Discord chat
+
+class GuildAnnouncer <<Client>> {
+  - channels : List<ChatChannel>
+  + addChannel(channel : ChatChannel) : void
+  - announce(text : String) : void
+}
+
+interface ChatChannel <<Target>> {
+  + sendMessage(text : String) : void
+}
+
+class InGameGuildChat <<Concrete Target>> {
+  - guildName : String {readOnly}
+  + InGameGuildChat(guildName : String)
+  + sendMessage(text : String) : void
+}
+
+class DiscordChatAdapter <<Adapter>> {
+  - client : DiscordWebhookClient {readOnly}
+  - webhookUrl : String {readOnly}
+  - botName : String {readOnly}
+  + DiscordChatAdapter(client : DiscordWebhookClient, webhookUrl : String, botName : String)
+  + sendMessage(text : String) : void
+  - escape(text : String) : String
+}
+
+class DiscordWebhookClient <<Adaptee>> {
+  + postJson(webhookUrl : String, jsonBody : String) : void
+}
+
+GuildAnnouncer o--> "0..*" ChatChannel : channels
+InGameGuildChat .up.|> ChatChannel
+DiscordChatAdapter .up.|> ChatChannel
+DiscordChatAdapter o--> "1" DiscordWebhookClient : client
+
+note bottom of DiscordChatAdapter
+  sendMessage(text):
+    json = {"username": botName, "content": text}
+    (both escaped)
+    client.postJson(webhookUrl, json)
+end note
+note bottom of DiscordWebhookClient
+  "Third-party library" we cannot
+  change. Its API (URL + JSON body)
+  does not match ChatChannel.
+end note
+@enduml

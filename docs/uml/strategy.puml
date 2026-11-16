@@ -1,0 +1,86 @@
+@startuml strategy
+!pragma layout smetana
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F7F9FC
+skinparam classBorderColor #2F4A7A
+skinparam classHeaderBackgroundColor #E3EAF5
+skinparam classFontStyle bold
+skinparam stereotypeFontColor #2F4A7A
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam packageBorderColor #2F4A7A
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageFontColor #2F4A7A
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam circledCharacterFontSize 10
+skinparam circledCharacterRadius 9
+hide empty members
+
+title Strategy - loot distribution
+
+class Main <<Client>>
+hide Main members
+
+class DungeonFacade <<Facade>> {
+  - loot : LootSystem
+  + setLootStrategy(strategy : LootStrategy) : void
+  + getLootStrategyName() : String
+}
+
+class LootSystem <<Context>> {
+  - strategy : LootStrategy
+  + LootSystem(strategy : LootStrategy)
+  + setStrategy(strategy : LootStrategy) : void
+  + getStrategy() : LootStrategy
+  + distribute(party : List<Character>, item : Weapon) : void
+  - livingMembers(party : List<Character>) : List<Character>
+}
+
+interface LootStrategy <<Strategy>> {
+  + getName() : String
+  + chooseWinner(party : List<Character>, item : Weapon) : Character
+}
+
+class RoundRobinLoot <<Concrete Strategy>> {
+  - lastWinner : Character
+  + getName() : String
+  + chooseWinner(party : List<Character>, item : Weapon) : Character
+}
+class RandomRollLoot <<Concrete Strategy>> {
+  - {static} MAX_ROLL : int = 100
+  - random : Random {readOnly}
+  + RandomRollLoot()
+  + RandomRollLoot(seed : long)
+  + getName() : String
+  + chooseWinner(party : List<Character>, item : Weapon) : Character
+}
+class MasterLooterLoot <<Concrete Strategy>> {
+  - masterLooter : Character {readOnly}
+  + MasterLooterLoot(masterLooter : Character)
+  + getName() : String
+  + chooseWinner(party : List<Character>, item : Weapon) : Character
+}
+
+Main --> DungeonFacade : setLootStrategy(strategy)
+Main ..> LootStrategy : creates a\nconcrete strategy
+DungeonFacade *-- "1" LootSystem : loot
+LootSystem o--> "1" LootStrategy : strategy
+RoundRobinLoot .up.|> LootStrategy
+RandomRollLoot .up.|> LootStrategy
+MasterLooterLoot .up.|> LootStrategy
+
+note right of LootSystem
+  distribute(party, item):
+    winner = strategy.chooseWinner(
+        livingMembers(party), item)
+    winner.receiveLoot(item)
+    publish LOOT_RECEIVED event
+end note
+@enduml

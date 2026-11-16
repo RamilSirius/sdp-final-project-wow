@@ -1,0 +1,133 @@
+@startuml overview
+!pragma layout smetana
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F7F9FC
+skinparam classBorderColor #2F4A7A
+skinparam classHeaderBackgroundColor #E3EAF5
+skinparam classFontStyle bold
+skinparam stereotypeFontColor #2F4A7A
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam packageBorderColor #2F4A7A
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageFontColor #2F4A7A
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam circledCharacterFontSize 10
+skinparam circledCharacterRadius 9
+hide empty members
+
+title Azeroth Online - architecture overview (package wow)
+hide members
+hide circle
+skinparam packageFontSize 12
+
+class Main <<the only class outside>>
+
+package "creational.singleton" as pw {
+  class WorldServer <<Singleton>>
+}
+
+package "creational.builder" as pch {
+  class CharacterBuilder <<Builder>>
+  class Character <<Product>>
+}
+
+package "creational.factorymethod" as pd {
+  abstract class Dungeon <<Creator>>
+  class Enemy <<Product>>
+  class Deadmines
+  class ShadowfangKeep
+  class MoltenCore
+}
+
+package "structural.facade" as pf {
+  class DungeonFacade <<Facade>>
+  class Teleporter <<Subsystem>>
+  class CombatSystem <<Subsystem>>
+  class ExperienceService <<Subsystem>>
+}
+
+package "behavioral.strategy" as pl {
+  class LootSystem <<Context>>
+  interface LootStrategy <<Strategy>>
+  class RoundRobinLoot
+  class RandomRollLoot
+  class MasterLooterLoot
+}
+
+package "behavioral.observer" as pe {
+  class EventManager <<Subject>>
+  interface GameEventListener <<Observer>>
+  class CombatLog
+  class AchievementTracker
+  class GuildAnnouncer
+}
+
+package "structural.adapter" as pc {
+  interface ChatChannel <<Target>>
+  class InGameGuildChat
+  class DiscordChatAdapter <<Adapter>>
+  class DiscordWebhookClient <<Adaptee>>
+}
+
+package "structural.decorator" as pi {
+  interface Weapon <<Component>>
+  class BaseWeapon
+  abstract class WeaponEnchantment <<Decorator>>
+  class FieryEnchantment
+  class CrusaderEnchantment
+  class SharpeningStone
+}
+
+Main --> DungeonFacade
+Main ..> CharacterBuilder
+Main ..> WorldServer : subscribes\nobservers
+
+DungeonFacade *-- Teleporter
+DungeonFacade *-- CombatSystem
+DungeonFacade *-- LootSystem
+DungeonFacade *-- ExperienceService
+DungeonFacade ..> Dungeon : runs
+
+LootSystem o-- LootStrategy
+LootStrategy <|.. RoundRobinLoot
+LootStrategy <|.. RandomRollLoot
+LootStrategy <|.. MasterLooterLoot
+
+Dungeon <|-- Deadmines
+Dungeon <|-- ShadowfangKeep
+Dungeon <|-- MoltenCore
+Deadmines ..> Enemy : creates
+ShadowfangKeep -[hidden]- Enemy
+Enemy -[hidden]- WorldServer
+RandomRollLoot -[hidden]- EventManager
+Dungeon ..> Weapon : boss loot
+
+CombatSystem ..> WorldServer : publishes\nevents
+WorldServer *-- EventManager
+EventManager o-- GameEventListener
+GameEventListener <|.. CombatLog
+GameEventListener <|.. AchievementTracker
+GameEventListener <|.. GuildAnnouncer
+GuildAnnouncer o-right- ChatChannel
+
+ChatChannel <|.. InGameGuildChat
+ChatChannel <|.. DiscordChatAdapter
+DiscordChatAdapter --> DiscordWebhookClient
+
+CharacterBuilder ..> Character : builds
+Character o-- Weapon
+Weapon <|.. BaseWeapon
+Weapon <|.. WeaponEnchantment
+WeaponEnchantment o-- Weapon : wraps
+WeaponEnchantment <|-- FieryEnchantment
+WeaponEnchantment <|-- CrusaderEnchantment
+WeaponEnchantment <|-- SharpeningStone
+@enduml

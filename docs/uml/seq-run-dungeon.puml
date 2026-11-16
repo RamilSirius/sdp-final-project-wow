@@ -1,0 +1,102 @@
+@startuml seq-run-dungeon
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam sequence {
+  ParticipantBackgroundColor #F7F9FC
+  ParticipantBorderColor #2F4A7A
+  ParticipantFontColor #1F2D45
+  ActorBackgroundColor #F7F9FC
+  ActorBorderColor #2F4A7A
+  LifeLineBorderColor #8FA3C4
+  LifeLineBackgroundColor #E3EAF5
+  GroupBorderColor #2F4A7A
+  GroupBackgroundColor #E3EAF5
+  GroupHeaderFontColor #1F2D45
+  DividerBackgroundColor #E3EAF5
+  DividerBorderColor #2F4A7A
+}
+autonumber "<b>0."
+
+title DungeonFacade.runDungeon(party, dungeon)
+hide footbox
+
+participant "Client" as C
+participant ":DungeonFacade" as F
+participant ":Teleporter" as T
+participant "dungeon:\nDungeon" as D
+participant ":CombatSystem" as CS
+participant ":LootSystem" as LS
+participant "strategy:\nLootStrategy" as LST
+participant "winner:\nCharacter" as W
+participant ":Experience\nService" as XP
+participant ":EventManager" as EM
+participant "observers:\nGameEventListener" as O
+
+C -> F : runDungeon(party, dungeon)
+activate F
+F -> F : canEnter(party)
+note right of F : 1..5 members,\none faction
+F -> T : enter(party, dungeon)
+F -> D : spawnEnemies()
+activate D
+loop trash mobs
+  D -> D : createTrashMob()
+end
+D -> D : createBoss()
+D --> F : enemies : List<Enemy>
+deactivate D
+
+loop for each enemy
+  F -> CS : fight(party, enemy)
+  activate CS
+  CS -> CS : playRound(...)\nuntil one\nside is dead
+  CS -> EM : publish(ENEMY_KILLED\nor BOSS_DEFEATED)
+  activate EM
+  EM -> O : onEvent(event)
+  deactivate EM
+  CS --> F : true (victory)
+  deactivate CS
+  note right of F : on a wipe: fight() publishes\nPARTY_WIPED and returns false;\nrunDungeon returns false\n(after the finally block)
+end
+
+F -> D : dropBossLoot()
+activate D
+D -> D : createBossLoot()
+D --> F : item : Weapon
+deactivate D
+F -> LS : distribute(party, item)
+activate LS
+LS -> LST : chooseWinner(\nlivingMembers, item)
+LST --> LS : winner : Character
+LS -> W : receiveLoot(item)
+LS -> EM : publish(LOOT_RECEIVED)
+activate EM
+EM -> O : onEvent(event)
+deactivate EM
+deactivate LS
+
+F -> D : getExperienceReward()
+D --> F : xp
+F -> XP : grant(party, xp)
+activate XP
+XP -> EM : publish(LEVEL_UP)\none per level gained
+activate EM
+EM -> O : onEvent(event)
+deactivate EM
+deactivate XP
+
+F -> T : returnToCity(party)
+note right of T : in finally: after\na win and a wipe
+F --> C : true
+deactivate F
+@enduml

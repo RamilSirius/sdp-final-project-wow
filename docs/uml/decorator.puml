@@ -1,0 +1,92 @@
+@startuml decorator
+!pragma layout smetana
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F7F9FC
+skinparam classBorderColor #2F4A7A
+skinparam classHeaderBackgroundColor #E3EAF5
+skinparam classFontStyle bold
+skinparam stereotypeFontColor #2F4A7A
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam packageBorderColor #2F4A7A
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageFontColor #2F4A7A
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam circledCharacterFontSize 10
+skinparam circledCharacterRadius 9
+hide empty members
+
+title Decorator - weapon enchantments
+
+interface Weapon <<Component>> {
+  + getName() : String
+  + getDamage() : int
+}
+
+class BaseWeapon <<Concrete Component>> {
+  - name : String {readOnly}
+  - damage : int {readOnly}
+  + BaseWeapon(name : String, damage : int)
+  + getName() : String
+  + getDamage() : int
+}
+
+abstract class WeaponEnchantment <<Base Decorator>> {
+  # weapon : Weapon {readOnly}
+  # WeaponEnchantment(weapon : Weapon)
+  + getName() : String
+  + getDamage() : int
+}
+
+class FieryEnchantment <<Concrete Decorator>> {
+  - {static} BONUS_DAMAGE : int = 12
+  + FieryEnchantment(weapon : Weapon)
+  + getName() : String
+  + getDamage() : int
+}
+class CrusaderEnchantment <<Concrete Decorator>> {
+  - {static} BONUS_DAMAGE : int = 20
+  + CrusaderEnchantment(weapon : Weapon)
+  + getName() : String
+  + getDamage() : int
+}
+class SharpeningStone <<Concrete Decorator>> {
+  - {static} BONUS_DAMAGE : int = 5
+  + SharpeningStone(weapon : Weapon)
+  + getName() : String
+  + getDamage() : int
+}
+
+class Character <<Client>> {
+  - weapon : Weapon
+  + equip(newWeapon : Weapon) : void
+  + getDamage() : int
+}
+
+Character o--> "1" Weapon : weapon
+Weapon <|... BaseWeapon
+Weapon <|... WeaponEnchantment
+WeaponEnchantment o--- "1" Weapon : wraps
+FieryEnchantment -up-|> WeaponEnchantment
+CrusaderEnchantment -up-|> WeaponEnchantment
+SharpeningStone -up-|> WeaponEnchantment
+
+note bottom of WeaponEnchantment
+  getName() { return weapon.getName(); }
+  getDamage() { return weapon.getDamage(); }
+end note
+note bottom of CrusaderEnchantment
+  getName(): super.getName() + " + Crusader"
+  getDamage(): super.getDamage() + BONUS_DAMAGE
+  Decorators stack, e.g.
+  new SharpeningStone(new CrusaderEnchantment(
+    new FieryEnchantment(weapon)))
+end note
+@enduml

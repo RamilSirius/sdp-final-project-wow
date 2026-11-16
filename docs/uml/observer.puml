@@ -1,0 +1,107 @@
+@startuml observer
+!pragma layout smetana
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F7F9FC
+skinparam classBorderColor #2F4A7A
+skinparam classHeaderBackgroundColor #E3EAF5
+skinparam classFontStyle bold
+skinparam stereotypeFontColor #2F4A7A
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam packageBorderColor #2F4A7A
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageFontColor #2F4A7A
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam circledCharacterFontSize 10
+skinparam circledCharacterRadius 9
+hide empty members
+
+title Observer - game events
+
+class WorldServer <<Singleton>> {
+  - events : EventManager
+  + getEvents() : EventManager
+  + login(character : Character) : void
+}
+
+class EventManager <<Subject>> {
+  - listeners : List<GameEventListener>
+  + subscribe(listener : GameEventListener) : void
+  + unsubscribe(listener : GameEventListener) : void
+  + publish(event : GameEvent) : void
+}
+
+interface GameEventListener <<Observer>> {
+  + onEvent(event : GameEvent) : void
+}
+
+class CombatLog <<Concrete Observer>> {
+  - history : List<String>
+  + onEvent(event : GameEvent) : void
+  + size() : int
+}
+class AchievementTracker <<Concrete Observer>> {
+  - achievements : Set<String>
+  + onEvent(event : GameEvent) : void
+  - unlock(name : String) : void
+  + getAchievements() : Set<String>
+}
+class GuildAnnouncer <<Concrete Observer>> {
+  - channels : List<ChatChannel>
+  + addChannel(channel : ChatChannel) : void
+  + onEvent(event : GameEvent) : void
+  - announce(text : String) : void
+}
+
+class GameEvent <<Event (immutable)>> {
+  - type : EventType {readOnly}
+  - subject : String {readOnly}
+  - message : String {readOnly}
+  + GameEvent(type : EventType, subject : String, message : String)
+  + getType() : EventType
+  + getSubject() : String
+  + getMessage() : String
+}
+enum EventType {
+  PLAYER_LOGGED_IN
+  ENEMY_KILLED
+  BOSS_DEFEATED
+  PARTY_WIPED
+  LOOT_RECEIVED
+  LEVEL_UP
+}
+
+class "CombatSystem\nLootSystem\nExperienceService" as Publishers <<Publishers>>
+hide Publishers members
+interface ChatChannel <<Adapter: Target>>
+hide ChatChannel members
+
+WorldServer *-- "1" EventManager : events
+Publishers ..> WorldServer : getInstance().getEvents()\n.publish(event)
+EventManager o--> "0..*" GameEventListener : listeners
+CombatLog .up.|> GameEventListener
+AchievementTracker .up.|> GameEventListener
+GuildAnnouncer .up.|> GameEventListener
+EventManager ..> GameEvent : sends
+GameEvent --> "1" EventType
+GuildAnnouncer o--> "0..*" ChatChannel : channels
+
+note right of EventManager
+  publish() loops over a copy of
+  listeners and calls onEvent(event)
+  on each one, so a listener may
+  unsubscribe while events are sent.
+end note
+
+note left of WorldServer
+  login() publishes PLAYER_LOGGED_IN
+  to its own EventManager.
+end note
+@enduml

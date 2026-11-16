@@ -1,0 +1,108 @@
+@startuml builder
+!pragma layout smetana
+skinparam dpi 160
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F7F9FC
+skinparam classBorderColor #2F4A7A
+skinparam classHeaderBackgroundColor #E3EAF5
+skinparam classFontStyle bold
+skinparam stereotypeFontColor #2F4A7A
+skinparam ArrowColor #2F4A7A
+skinparam ArrowFontColor #1F2D45
+skinparam ArrowFontSize 11
+skinparam packageBorderColor #2F4A7A
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageFontColor #2F4A7A
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #8FA3C4
+skinparam noteFontSize 11
+skinparam circledCharacterFontSize 10
+skinparam circledCharacterRadius 9
+hide empty members
+
+title Builder - CharacterBuilder and Character
+
+class Main <<Client>>
+hide Main members
+
+class CharacterBuilder <<Builder>> {
+  + {static} MAX_LEVEL : int = 60
+  - name : String
+  - race : Race
+  - heroClass : HeroClass
+  - guild : String = ""
+  - title : String = ""
+  - level : int = 1
+  - weapon : Weapon
+  --
+  + name(name : String) : CharacterBuilder
+  + race(race : Race) : CharacterBuilder
+  + heroClass(heroClass : HeroClass) : CharacterBuilder
+  + guild(guild : String) : CharacterBuilder
+  + title(title : String) : CharacterBuilder
+  + level(level : int) : CharacterBuilder
+  + weapon(weapon : Weapon) : CharacterBuilder
+  + build() : Character
+  - validate() : void
+  - isValidName(text : String) : boolean
+  ~ getName(), getRace(), ... getLevel()
+  ~ getWeapon() : Weapon
+}
+
+class Character <<Product>> {
+  - name : String {readOnly}
+  - race : Race {readOnly}
+  - heroClass : HeroClass {readOnly}
+  - guild : String {readOnly}
+  - title : String {readOnly}
+  - bag : List<Weapon>
+  - level : int
+  - experience : int
+  - currentHealth : int
+  - weapon : Weapon
+  --
+  ~ Character(builder : CharacterBuilder)
+  + getMaxHealth() : int
+  + getDamage() : int
+  + getFullName() : String
+  + equip(newWeapon : Weapon) : void
+  + receiveLoot(item : Weapon) : void
+  + gainExperience(xp : int) : int
+  + describe() : String
+  + getCurrentHealth() : int
+  + getFaction() : Faction
+}
+
+enum Race
+enum HeroClass
+interface Weapon
+hide Race members
+hide HeroClass members
+hide Weapon members
+
+Main ..> CharacterBuilder : new CharacterBuilder()\n.name(..).race(..)...build()
+CharacterBuilder ..> Character : <<create>>\nnew Character(this)
+Character --> "1" Race
+Character --> "1" HeroClass
+Character o-- "1" Weapon : weapon
+
+note right of CharacterBuilder
+  Fluent builder, no Director: each setter
+  returns <b>this</b>. build() calls validate()
+  (name 2-12 letters, race and class set,
+  level 1..60) and throws IllegalStateException.
+  No weapon given: getWeapon() makes the
+  starter weapon of the hero class
+  (a new BaseWeapon).
+end note
+note bottom of Character
+  Package-private constructor: only
+  CharacterBuilder (same package
+  wow.creational.builder) can create a hero.
+  Race, HeroClass, Faction: sub-package
+  attributes.
+end note
+@enduml
