@@ -135,6 +135,11 @@ What happens in one call of `DungeonFacade.runDungeon(party, dungeon)`:
 - **Clean code:** meaningful names, constants instead of magic numbers (`MAX_PARTY_SIZE`, `MAX_ROUNDS`, `BONUS_DAMAGE`),
   no `if`/`switch` on the type of a strategy, private fields and immutable events.
 
+## Report
+
+The full report (architecture, every pattern with code and UML, screenshots, testing, conclusion and further work):
+[docs/SDP_Final_Project_Report.pdf](docs/SDP_Final_Project_Report.pdf).
+
 ## UML diagrams
 
 PlantUML sources and PNGs are in `docs/uml/`: an overview of the whole project, two sequence diagrams
